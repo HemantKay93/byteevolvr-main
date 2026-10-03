@@ -8,6 +8,16 @@ export function BuilderPage() {
     <div className="container mx-auto px-4 py-8 mt-20">
       <Helmet>
         <title>Custom PC Builder | ByteEvolvr</title>
+        <meta
+          name="description"
+          content="Build your custom gaming rig or workstation with ByteEvolvr's interactive PC builder. Select compatible CPUs, GPUs, motherboards, and accessories."
+        />
+        <meta property="og:title" content="Custom PC Builder | ByteEvolvr" />
+        <meta
+          property="og:description"
+          content="Build your custom gaming rig or workstation with ByteEvolvr's interactive PC builder. Select compatible CPUs, GPUs, motherboards, and accessories."
+        />
+        <meta property="og:type" content="website" />
       </Helmet>
 
       <div className="mb-8">

@@ -8,7 +8,7 @@ import logger from '../logger.js';
 import { redis } from '../../config/redis.js';
 
 // Mock dependencies
-vi.mock('../../jobs/index.js', () => ({
+vi.mock('../../core/queues/index.js', () => ({
   emailQueue: { add: vi.fn() },
   notificationQueue: { add: vi.fn() },
   analyticsQueue: { add: vi.fn() },

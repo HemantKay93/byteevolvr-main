@@ -117,8 +117,8 @@ export function MarketingDashboard() {
         <div className="cursor-pointer" onClick={() => navigate('/marketing/segments')}>
           <Card className="hover:border-primary transition-colors">
             <div className="p-6 text-center">
-              <div className="mx-auto rounded-full bg-purple-50 p-4 w-16 h-16 flex items-center justify-center mb-4">
-                <Users className="h-8 w-8 text-purple-600" />
+              <div className="mx-auto rounded-full bg-teal-50 p-4 w-16 h-16 flex items-center justify-center mb-4">
+                <Users className="h-8 w-8 text-teal-600" />
               </div>
               <h3 className="font-semibold text-on-background">Audience Segments</h3>
               <p className="text-body-sm text-on-surface-variant mt-1">Filter and target users</p>

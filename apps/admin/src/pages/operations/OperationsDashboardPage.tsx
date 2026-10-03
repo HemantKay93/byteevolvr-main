@@ -233,8 +233,8 @@ export function OperationsDashboardPage() {
 
             <div className="p-4 flex items-center justify-between hover:bg-surface-container-lowest transition-colors">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
-                  <HardDrive className="h-5 w-5 text-purple-500" />
+                <div className="w-10 h-10 rounded-lg bg-cyan-50 flex items-center justify-center">
+                  <HardDrive className="h-5 w-5 text-cyan-600" />
                 </div>
                 <div>
                   <p className="font-semibold text-sm">Object Storage (S3)</p>

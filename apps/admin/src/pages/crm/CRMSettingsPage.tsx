@@ -64,11 +64,28 @@ export function CRMSettingsPage() {
                     <GripVertical className="h-5 w-5" />
                   </div>
                   <div className="flex-1">
-                    <Input defaultValue={stage.name} className="w-full" />
+                    <label htmlFor={`stage-name-${i}`} className="sr-only">
+                      Stage Name
+                    </label>
+                    <Input
+                      id={`stage-name-${i}`}
+                      aria-label="Stage Name"
+                      defaultValue={stage.name}
+                      className="w-full"
+                    />
                   </div>
                   <div className="w-24">
                     <div className="relative">
-                      <Input type="number" defaultValue={stage.prob} className="w-full pr-8" />
+                      <label htmlFor={`stage-prob-${i}`} className="sr-only">
+                        Probability Percentage
+                      </label>
+                      <Input
+                        id={`stage-prob-${i}`}
+                        aria-label="Probability Percentage"
+                        type="number"
+                        defaultValue={stage.prob}
+                        className="w-full pr-8"
+                      />
                       <span className="absolute right-3 top-2.5 text-sm text-on-surface-variant">
                         %
                       </span>

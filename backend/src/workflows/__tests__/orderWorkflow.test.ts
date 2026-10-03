@@ -128,4 +128,39 @@ describe('OrderWorkflow', () => {
     // Analytics should NOT be dispatched
     expect(JobService.dispatchAnalyticsEvent).not.toHaveBeenCalled();
   });
+
+  it('should rollback partial reservations if reserving a subsequent item fails', async () => {
+    const mockItems = [
+      { productId: 'p1', quantity: 2, price: 100 },
+      { productId: 'p2', quantity: 1, price: 200 },
+    ];
+
+    // First item succeeds, second item fails
+    (InventoryService.reserveStock as any)
+      .mockResolvedValueOnce({ reservationId: 'res_1' })
+      .mockRejectedValueOnce(new Error('Insufficient stock for p2'));
+    (InventoryService.releaseReservation as any).mockResolvedValue(true);
+
+    await expect(
+      OrderWorkflow.processCheckout('user_1', {
+        items: mockItems,
+        warehouseId: 'wh_1',
+        paymentMethod: 'cash',
+      })
+    ).rejects.toThrow('Order failed during inventory reservation: Insufficient stock for p2');
+
+    expect(InventoryService.reserveStock).toHaveBeenCalledTimes(2);
+    // res_1 should be rolled back immediately
+    expect(InventoryService.releaseReservation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: 'p1',
+        warehouseId: 'wh_1',
+        quantity: 2,
+        reservationId: 'res_1',
+      })
+    );
+    // Order creation and analytics should not have been reached
+    expect(mockCreateOrder).not.toHaveBeenCalled();
+    expect(JobService.dispatchAnalyticsEvent).not.toHaveBeenCalled();
+  });
 });

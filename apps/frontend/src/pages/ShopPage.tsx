@@ -136,7 +136,7 @@ export function ShopPage() {
                 src={slide.image}
                 alt={slide.title}
                 loading={index === 0 ? 'eager' : 'lazy'}
-                fetchpriority={index === 0 ? 'high' : 'low'}
+                fetchPriority={index === 0 ? 'high' : 'low'}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-stitch-background via-stitch-background/60 to-transparent"></div>
 

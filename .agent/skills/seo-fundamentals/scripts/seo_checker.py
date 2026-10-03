@@ -34,7 +34,8 @@ except:
 SKIP_DIRS = {
     'node_modules', '.next', 'dist', 'build', '.git', '.github',
     '__pycache__', '.vscode', '.idea', 'coverage', 'test', 'tests',
-    '__tests__', 'spec', 'docs', 'documentation', 'examples'
+    '__tests__', 'spec', 'docs', 'documentation', 'examples',
+    '.agent', '.agents', '.wwebjs_cache', 'backend'
 }
 
 # Files to skip (not pages)
@@ -50,12 +51,14 @@ def is_page_file(file_path: Path) -> bool:
     name = file_path.name.lower()
     stem = file_path.stem.lower()
     
-    # Skip utility/config files
+    # Skip utility/config files and non-public admin portals
+    parts = [p.lower() for p in file_path.parts]
+    if 'admin' in parts:
+        return False
     if any(skip in name for skip in SKIP_PATTERNS):
         return False
     
     # Check path - pages in specific directories are likely pages
-    parts = [p.lower() for p in file_path.parts]
     page_dirs = ['pages', 'app', 'routes', 'views', 'screens']
     
     if any(d in parts for d in page_dirs):
@@ -102,8 +105,8 @@ def check_page(file_path: Path) -> dict:
     except Exception as e:
         return {"file": str(file_path.name), "issues": [f"Error: {e}"]}
     
-    # Detect if this is a layout/template file (has Head component)
-    is_layout = 'Head>' in content or '<head' in content.lower()
+    # Detect if this is an actual document head or layout template with Head/Helmet component (not TableHead)
+    is_layout = bool(re.search(r'<(?:Head|Helmet|head)[\s>]', content))
     
     # 1. Title tag
     has_title = '<title' in content.lower() or 'title=' in content or 'Head>' in content

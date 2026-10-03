@@ -129,7 +129,7 @@ export function CustomerDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
-          <div className="p-6 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-500/20">
+          <div className="p-6 bg-gradient-to-br from-teal-500/10 to-cyan-500/10 border-teal-500/20">
             <div className="text-indigo-700 dark:text-indigo-300 font-black text-[10px] uppercase tracking-[0.2em] mb-1">
               Lifetime Value (LTV)
             </div>

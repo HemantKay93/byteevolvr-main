@@ -27,7 +27,7 @@ export class OrderWorkflow {
       warehouseId = defaultWh?.id;
     }
 
-    // 1. Validate & Reserve Inventory
+    // 1. Validate & Reserve Inventory (Strict All-or-Nothing)
     const reservations: string[] = [];
     try {
       for (const item of items) {
@@ -38,11 +38,31 @@ export class OrderWorkflow {
           userId,
         });
         reservations.push(reservationId);
-        // eslint-disable-line @typescript-eslint/no-explicit-any
       }
     } catch (err: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-      // Rollback successful reservations (future: transaction handling)
+      logger.error(
+        '[OrderWorkflow] Inventory reservation failed, rolling back partial reservations:',
+        err
+      );
+      for (const rId of reservations) {
+        try {
+          const index = reservations.indexOf(rId);
+          if (index !== -1) {
+            const item = items[index];
+            await InventoryService.releaseReservation({
+              productId: item.productId || item.product_id,
+              warehouseId,
+              quantity: Number(item.quantity),
+              reservationId: rId,
+            });
+          }
+        } catch (rollbackErr) {
+          logger.error(
+            `[OrderWorkflow] Failed to rollback partial reservation ${rId}:`,
+            rollbackErr
+          );
+        }
+      }
       throw new AppError(`Order failed during inventory reservation: ${err.message}`, 400);
     }
 

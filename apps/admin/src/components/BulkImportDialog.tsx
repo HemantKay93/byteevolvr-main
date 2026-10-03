@@ -175,13 +175,17 @@ export function BulkImportDialog({ isOpen, onClose, onSuccess }: BulkImportDialo
               <h3 className="text-lg font-semibold text-on-surface">
                 Click to upload or drag and drop
               </h3>
-              <p className="text-on-surface-variant text-sm mt-2">Support for .csv, .xlsx, .xls</p>
+              <label htmlFor="bulk-file-upload" className="sr-only">
+                Upload spreadsheet file
+              </label>
               <input
+                id="bulk-file-upload"
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
                 className="hidden"
+                aria-label="Upload spreadsheet file"
               />
               <Button
                 variant="outline"

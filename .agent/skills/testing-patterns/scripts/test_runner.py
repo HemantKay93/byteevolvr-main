@@ -88,8 +88,14 @@ def run_tests(cmd: list, cwd: Path) -> dict:
     }
     
     try:
+        final_cmd = list(cmd)
+        if sys.platform == "win32":
+            import shutil
+            resolved = shutil.which(final_cmd[0])
+            if resolved:
+                final_cmd[0] = resolved
         proc = subprocess.run(
-            cmd,
+            final_cmd,
             cwd=str(cwd),
             capture_output=True,
             text=True,

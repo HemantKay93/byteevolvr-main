@@ -20,7 +20,6 @@ export function KnowledgeBasePage() {
 
   const fetchArticles = async () => {
     try {
-      // @ts-expect-error Dynamic import compatibility
       const { SupportService } = await import('@byteevolvr/api-client');
       const response = await SupportService.getKnowledgeBaseArticles();
       setArticles(Array.isArray(response) ? response : response?.data || []);

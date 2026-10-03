@@ -26,6 +26,15 @@ import argparse
 from pathlib import Path
 from typing import List, Tuple, Optional
 
+if sys.platform == 'win32':
+    try:
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8')
+        if hasattr(sys.stderr, 'reconfigure'):
+            sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 # ANSI colors for terminal output
 class Colors:
     HEADER = '\033[95m'
@@ -69,9 +78,24 @@ PERFORMANCE_CHECKS = [
     ("Playwright E2E", ".agents/skills/webapp-testing/scripts/playwright_runner.py", False),
 ]
 
+def resolve_script_path(script_path: Path) -> Optional[Path]:
+    """Check if script file exists with fallback between .agents and .agent"""
+    if script_path.exists() and script_path.is_file():
+        return script_path
+    path_str = str(script_path)
+    if ".agents" in path_str:
+        alt = Path(path_str.replace(".agents", ".agent"))
+        if alt.exists() and alt.is_file():
+            return alt
+    elif ".agent" in path_str:
+        alt = Path(path_str.replace(".agent", ".agents"))
+        if alt.exists() and alt.is_file():
+            return alt
+    return None
+
 def check_script_exists(script_path: Path) -> bool:
     """Check if script file exists"""
-    return script_path.exists() and script_path.is_file()
+    return resolve_script_path(script_path) is not None
 
 def run_script(name: str, script_path: Path, project_path: str, url: Optional[str] = None) -> dict:
     """
@@ -80,14 +104,15 @@ def run_script(name: str, script_path: Path, project_path: str, url: Optional[st
     Returns:
         dict with keys: name, passed, output, skipped
     """
-    if not check_script_exists(script_path):
+    resolved = resolve_script_path(script_path)
+    if not resolved:
         print_warning(f"{name}: Script not found, skipping")
         return {"name": name, "passed": True, "output": "", "skipped": True}
     
     print_step(f"Running: {name}")
     
     # Build command
-    cmd = [sys.executable, str(script_path), project_path]
+    cmd = [sys.executable, str(resolved), project_path]
     if url and ("lighthouse" in script_path.name.lower() or "playwright" in script_path.name.lower()):
         cmd.append(url)
     
@@ -97,6 +122,8 @@ def run_script(name: str, script_path: Path, project_path: str, url: Optional[st
             cmd,
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
             timeout=300  # 5 minute timeout
         )
         
@@ -107,7 +134,9 @@ def run_script(name: str, script_path: Path, project_path: str, url: Optional[st
         else:
             print_error(f"{name}: FAILED")
             if result.stderr:
-                print(f"  Error: {result.stderr[:200]}")
+                print(f"  Error: {result.stderr[:300]}")
+            elif result.stdout:
+                print(f"  Output: {result.stdout[-300:]}")
         
         return {
             "name": name,

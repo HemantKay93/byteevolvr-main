@@ -108,7 +108,7 @@ export function HeroSection() {
               className="font-display text-[clamp(2.5rem,7vw,5.5rem)] font-bold leading-[1.1] tracking-tight text-white drop-shadow-xl"
             >
               BYTEEVOLVR
-              <span className="block pl-0 text-transparent bg-clip-text bg-gradient-to-r from-accent via-purple-400 to-primary lg:pl-12 drop-shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+              <span className="block pl-0 text-transparent bg-clip-text bg-gradient-to-r from-accent via-cyan-400 to-primary lg:pl-12 drop-shadow-[0_0_15px_rgba(6,182,212,0.3)]">
                 ENTERPRISES
               </span>
             </motion.h1>
