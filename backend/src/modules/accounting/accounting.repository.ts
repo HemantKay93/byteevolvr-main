@@ -344,10 +344,11 @@ export class AccountingRepository {
     // Credit: Accounts Receivable
     const header: JournalHeader = {
       tenant_id: invoice?.tenant_id || '00000000-0000-0000-0000-000000000000',
-      period_id: '00000000-0000-0000-0000-000000000000',
+      voucher_number: paymentData.referenceNumber || `RCPT-${Date.now()}`,
       transaction_date: paymentData.paymentDate || new Date().toISOString().split('T')[0],
-      reference_number: paymentData.referenceNumber || `RCPT-${Date.now()}`,
-      description:
+      reference_type: 'payment',
+      reference_id: paymentData.invoiceId,
+      notes:
         `Payment received for ${invoice?.invoice_number || paymentData.invoiceId} via ${paymentData.paymentMode}. ${paymentData.notes || ''}`.trim(),
       status: 'posted',
     };
