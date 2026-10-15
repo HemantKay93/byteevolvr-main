@@ -55,4 +55,46 @@ export const ProductService = {
     });
     return response.data.url || response.data.data?.url;
   },
+
+  // Categories
+  getCategories: async (): Promise<any[]> => {
+    const response = await apiClient.get('/products/categories');
+    return response.data?.data || response.data || [];
+  },
+
+  createCategory: async (payload: {
+    name: string;
+    slug?: string;
+    parent?: string;
+    description?: string;
+    status?: string;
+  }): Promise<any> => {
+    const response = await apiClient.post('/products/categories', payload);
+    return response.data?.data || response.data;
+  },
+
+  deleteCategory: async (id: string): Promise<void> => {
+    await apiClient.delete(`/products/categories/${id}`);
+  },
+
+  // Brands
+  getBrands: async (): Promise<any[]> => {
+    const response = await apiClient.get('/products/brands');
+    return response.data?.data || response.data || [];
+  },
+
+  createBrand: async (payload: {
+    name: string;
+    slug?: string;
+    website?: string;
+    logo_url?: string;
+    status?: string;
+  }): Promise<any> => {
+    const response = await apiClient.post('/products/brands', payload);
+    return response.data?.data || response.data;
+  },
+
+  deleteBrand: async (id: string): Promise<void> => {
+    await apiClient.delete(`/products/brands/${id}`);
+  },
 };

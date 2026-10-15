@@ -9,10 +9,20 @@ import {
   TableHeader,
   TableRow,
 } from '@byteevolvr/ui';
-import { Package, TrendingDown, AlertTriangle, ArrowRightLeft, Loader2, Plus } from 'lucide-react';
-import { AdminService } from '@byteevolvr/api-client';
+import {
+  Package,
+  TrendingDown,
+  AlertTriangle,
+  ArrowRightLeft,
+  Loader2,
+  Plus,
+  X,
+  RefreshCw,
+} from 'lucide-react';
+import { AdminService, ProductService } from '@byteevolvr/api-client';
 import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { toast } from 'sonner';
 
 export function InventoryDashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -25,6 +35,89 @@ export function InventoryDashboardPage() {
     criticalLowStock: [] as any[],
     stockByCategory: [] as any[],
   });
+
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    sku: '',
+    category: 'General',
+    brand: '',
+    stock_quantity: 10,
+    cost_price: 0,
+    price: 0,
+    min_level: 5,
+    location: 'Main Warehouse - Shelf A1',
+  });
+
+  const generateSku = () => {
+    const prefix = (formData.category || 'SKU').substring(0, 3).toUpperCase();
+    const random = Math.floor(1000 + Math.random() * 9000);
+    setFormData((prev) => ({ ...prev, sku: `${prefix}-${random}` }));
+  };
+
+  const handleCreateItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      toast.error('Product name is required');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const generatedSku = formData.sku.trim() || `PRD-${Date.now().toString().slice(-6)}`;
+      const qty = Number(formData.stock_quantity) || 0;
+      const cost = Number(formData.cost_price) || 0;
+      const price = Number(formData.price) || cost * 1.3;
+
+      await ProductService.createProduct({
+        name: formData.name.trim(),
+        description: `Registered at ${formData.location}`,
+        price: price,
+        original_price: cost,
+        category: formData.category,
+        brand: formData.brand.trim() || undefined,
+        sku: generatedSku,
+        stock_quantity: qty,
+        status: qty > 0 ? 'active' : 'out_of_stock',
+      });
+
+      // Update real-time metrics
+      setMetrics((prev) => ({
+        ...prev,
+        totalItems: prev.totalItems + qty,
+        totalValue: prev.totalValue + qty * cost,
+        recentMovements: [
+          {
+            product_name: formData.name.trim(),
+            type: 'IN',
+            quantity: qty,
+            created_at: new Date().toISOString(),
+          },
+          ...prev.recentMovements,
+        ],
+      }));
+
+      toast.success(`"${formData.name}" added to stock successfully!`);
+      setIsAddModalOpen(false);
+      setFormData({
+        name: '',
+        sku: '',
+        category: 'General',
+        brand: '',
+        stock_quantity: 10,
+        cost_price: 0,
+        price: 0,
+        min_level: 5,
+        location: 'Main Warehouse - Shelf A1',
+      });
+    } catch (err: any) {
+      console.error('Failed to add product to inventory', err);
+      toast.error(err?.message || 'Failed to add item to inventory');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -75,11 +168,9 @@ export function InventoryDashboardPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Link to="/operations/inventory">
-            <Button variant="outline" className="gap-2">
-              <Plus className="h-4 w-4" /> Add Item
-            </Button>
-          </Link>
+          <Button variant="outline" className="gap-2" onClick={() => setIsAddModalOpen(true)}>
+            <Plus className="h-4 w-4" /> Add Item
+          </Button>
           <Link to="/operations/stock-transfers">
             <Button className="gap-2">
               <ArrowRightLeft className="h-4 w-4" /> Transfer Stock
@@ -267,6 +358,178 @@ export function InventoryDashboardPage() {
           </Table>
         </Card>
       </div>
+
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            onClick={() => setIsAddModalOpen(false)}
+          />
+          <div className="relative bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 w-full max-w-[560px] shadow-2xl rounded-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-slate-800 max-h-[90vh]">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-850">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Add Stock Item</h2>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateItem} className="flex flex-col flex-1 overflow-y-auto">
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-on-surface uppercase mb-1">
+                    Product / Item Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g. Ergonomic Office Chair"
+                    className="w-full px-3 py-2 border border-outline rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-on-surface uppercase mb-1">
+                      SKU Code
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={formData.sku}
+                        onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                        placeholder="AUTO-GEN"
+                        className="w-full px-3 py-2 border border-outline rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs font-mono"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={generateSku}
+                        title="Generate SKU"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-on-surface uppercase mb-1">
+                      Category
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      placeholder="Electronics, Apparel..."
+                      className="w-full px-3 py-2 border border-outline rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-on-surface uppercase mb-1">
+                      Brand
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.brand}
+                      onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                      placeholder="e.g. Acme Inc"
+                      className="w-full px-3 py-2 border border-outline rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-on-surface uppercase mb-1">
+                      Warehouse Location
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      placeholder="e.g. Bay 4, Rack 2"
+                      className="w-full px-3 py-2 border border-outline rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-on-surface uppercase mb-1">
+                      Initial Qty
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      required
+                      value={formData.stock_quantity}
+                      onChange={(e) =>
+                        setFormData({ ...formData, stock_quantity: parseInt(e.target.value) || 0 })
+                      }
+                      className="w-full px-3 py-2 border border-outline rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-on-surface uppercase mb-1">
+                      Cost (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.cost_price}
+                      onChange={(e) =>
+                        setFormData({ ...formData, cost_price: parseFloat(e.target.value) || 0 })
+                      }
+                      className="w-full px-3 py-2 border border-outline rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-on-surface uppercase mb-1">
+                      Selling (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) =>
+                        setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })
+                      }
+                      className="w-full px-3 py-2 border border-outline rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-outline-variant flex justify-end gap-3 bg-surface-container-low mt-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsAddModalOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting} className="gap-2">
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Adding...
+                    </>
+                  ) : (
+                    'Add Stock Item'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

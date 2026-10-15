@@ -26,6 +26,17 @@ export const AccountingService = {
     return response.data;
   },
 
+  // Invoices & Billing
+  createInvoice: async (invoice: any, lineItems: any[]) => {
+    const response = await apiClient.post('/accounting/invoices', { invoice, lineItems });
+    return response.data;
+  },
+
+  getInvoices: async (params?: any) => {
+    const response = await apiClient.get('/accounting/invoices', { params });
+    return response.data;
+  },
+
   // AR / AP
   getAR: async () => {
     const response = await apiClient.get('/accounting/ar');

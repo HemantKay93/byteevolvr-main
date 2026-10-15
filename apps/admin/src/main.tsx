@@ -332,7 +332,13 @@ const Main = () => {
                   <Route path="/documents" element={<DocumentCenterPage />} />
                   <Route path="/workflows" element={<WorkflowBuilderPage />} />
                   <Route path="/sla" element={<SLADashboardPage />} />
-                  <Route path="/operations" element={<OperationsDashboardPage />} />
+                  <Route path="/operations">
+                    <Route index element={<OperationsDashboardPage />} />
+                    <Route path="transfers" element={<StockTransfersPage />} />
+                    <Route path="stock-transfers" element={<StockTransfersPage />} />
+                    <Route path="shipping" element={<ShippingDashboardPage />} />
+                    <Route path="zones" element={<ShippingZonesPage />} />
+                  </Route>
                   <Route path="/reviews" element={<ReviewsPage />} />
                   <Route path="/marketing">
                     <Route index element={<MarketingDashboardPage />} />
