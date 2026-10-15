@@ -1,15 +1,79 @@
 import { numberToWords } from './numberToWords';
 
-export const printInvoice = (order: any, items: any[], cmsData?: any) => {
-  // eslint-disable-line complexity // eslint-disable-line @typescript-eslint/no-explicit-any
+export const printInvoice = (rawOrder: any, rawItems: any[] = [], cmsData?: any) => {
+  // eslint-disable-line complexity
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
-  const cgst = (Number(order.tax_amount) || 0) / 2;
-  const sgst = (Number(order.tax_amount) || 0) / 2;
-  const totalInWords = order.total_amount
-    ? numberToWords(Math.floor(Number(order.total_amount)))
-    : '';
+  // Normalize order object
+  const order = rawOrder?.order || rawOrder?.data || rawOrder || {};
+
+  // Normalize items array
+  const items: any[] =
+    Array.isArray(rawItems) && rawItems.length > 0
+      ? rawItems
+      : Array.isArray(order.order_items) && order.order_items.length > 0
+        ? order.order_items
+        : Array.isArray(order.items) && order.items.length > 0
+          ? order.items
+          : [];
+
+  // Calculate items total as reliable fallback
+  const calculatedItemsTotal = items.reduce((sum: number, it: any) => {
+    const unitPrice = Number(it.unit_price ?? it.price ?? 0);
+    const qty = Number(it.quantity ?? it.qty ?? 1);
+    const lineTotal = Number(it.total_price ?? unitPrice * qty);
+    return sum + (isNaN(lineTotal) ? 0 : lineTotal);
+  }, 0);
+
+  const totalAmountNum = Number(order.total_amount ?? order.totalAmount ?? order.total);
+  const totalAmount =
+    !isNaN(totalAmountNum) && totalAmountNum > 0 ? totalAmountNum : calculatedItemsTotal;
+
+  let subtotal = Number(order.subtotal);
+  let taxAmount = Number(order.tax_amount ?? order.taxAmount ?? order.tax);
+
+  if (isNaN(subtotal) || subtotal <= 0) {
+    if (!isNaN(taxAmount) && taxAmount > 0 && totalAmount > taxAmount) {
+      subtotal = totalAmount - taxAmount;
+    } else if (calculatedItemsTotal > 0) {
+      subtotal = calculatedItemsTotal;
+    } else {
+      subtotal = totalAmount;
+    }
+  }
+
+  if (isNaN(taxAmount) || taxAmount < 0) {
+    if (totalAmount > subtotal) {
+      taxAmount = totalAmount - subtotal;
+    } else {
+      taxAmount = 0;
+    }
+  }
+
+  const cgst = taxAmount > 0 ? taxAmount / 2 : 0;
+  const sgst = taxAmount > 0 ? taxAmount / 2 : 0;
+
+  const rawWords = totalAmount > 0 ? numberToWords(Math.floor(totalAmount)) : '';
+  const cleanWords = rawWords.replace(/Only\s*$/i, '').trim();
+  const totalInWords = cleanWords ? `Amount in words: ${cleanWords} Rupees Only` : '';
+
+  const invoiceNumber =
+    order.order_number ||
+    order.orderNumber ||
+    order.invoice_number ||
+    order.invoiceNumber ||
+    order.id ||
+    `POS-${Date.now().toString().slice(-6)}`;
+
+  let invoiceDateStr = new Date().toLocaleDateString('en-IN');
+  const rawDate = order.created_at || order.createdAt || order.date || order.order_date;
+  if (rawDate) {
+    const parsedDate = new Date(rawDate);
+    if (!isNaN(parsedDate.getTime())) {
+      invoiceDateStr = parsedDate.toLocaleDateString('en-IN');
+    }
+  }
 
   // Extract settings from cmsData array or object
   const contact = Array.isArray(cmsData)
@@ -30,16 +94,20 @@ export const printInvoice = (order: any, items: any[], cmsData?: any) => {
 
   // Handle address normalization
   let address: any = null;
-  // eslint-disable-line @typescript-eslint/no-explicit-any
-  if (order.addresses && order.addresses.length > 0) {
+  if (order.addresses && Array.isArray(order.addresses) && order.addresses.length > 0) {
     address = order.addresses[0];
-  } else if (order.addresses) {
+  } else if (order.addresses && typeof order.addresses === 'object') {
     address = order.addresses;
   } else if (order.shipping_address) {
     address =
       typeof order.shipping_address === 'string'
         ? JSON.parse(order.shipping_address)
         : order.shipping_address;
+  } else if (order.shippingAddress) {
+    address =
+      typeof order.shippingAddress === 'string'
+        ? JSON.parse(order.shippingAddress)
+        : order.shippingAddress;
   }
 
   const invoiceHtml = `
@@ -47,7 +115,7 @@ export const printInvoice = (order: any, items: any[], cmsData?: any) => {
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <title>Tax Invoice - ${order.order_number}</title>
+      <title>Tax Invoice - ${invoiceNumber}</title>
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         :root {
@@ -191,11 +259,11 @@ export const printInvoice = (order: any, items: any[], cmsData?: any) => {
             <h2>Tax Invoice</h2>
             <div class="detail-row">
               <span class="detail-label">Invoice No:</span>
-              <span class="detail-value">${order.order_number}</span>
+              <span class="detail-value">${invoiceNumber}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Date:</span>
-              <span class="detail-value">${new Date(order.created_at).toLocaleDateString('en-IN')}</span>
+              <span class="detail-value">${invoiceDateStr}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Place of Supply:</span>
@@ -208,8 +276,8 @@ export const printInvoice = (order: any, items: any[], cmsData?: any) => {
           <div class="address-box">
             <h3>Billed To</h3>
             <div class="address-content">
-              <p class="name">${order.customer_name || 'Customer'}</p>
-              <p>${order.customer_email || ''}</p>
+              <p class="name">${order.customer_name || address?.name || 'Customer'}</p>
+              <p>${order.customer_email || address?.email || ''}</p>
               ${address && address.phone ? `<p>Phone: ${address.phone}</p>` : ''}
               ${address && address.state ? `<p>POS: ${address.state}</p>` : ''}
             </div>
@@ -220,11 +288,11 @@ export const printInvoice = (order: any, items: any[], cmsData?: any) => {
               ${
                 address
                   ? `
-                <p class="name">${address.full_name || order.customer_name}</p>
-                <p>${address.line_1}</p>
+                <p class="name">${address.full_name || address.name || order.customer_name || 'Customer'}</p>
+                <p>${address.line_1 || ''}</p>
                 ${address.line_2 ? `<p>${address.line_2}</p>` : ''}
-                <p>${address.city}, ${address.state} - ${address.postal_code}</p>
-                <p>Mobile: ${address.phone}</p>
+                <p>${[address.city, address.state].filter(Boolean).join(', ')}${address.postal_code ? ` - ${address.postal_code}` : ''}</p>
+                ${address.phone ? `<p>Mobile: ${address.phone}</p>` : ''}
               `
                   : `
                 <p>Counter Sale / Pickup</p>
@@ -246,21 +314,25 @@ export const printInvoice = (order: any, items: any[], cmsData?: any) => {
           </thead>
           <tbody>
             ${items
-              .map(
-                (item: any, i: number) => `
- // eslint-disable-line @typescript-eslint/no-explicit-any
+              .map((item: any, i: number) => {
+                const productName = item.product_name || item.name || item.title || 'Product Item';
+                const sku = item.sku || 'N/A';
+                const qty = Number(item.quantity ?? item.qty ?? 1);
+                const unitPrice = Number(item.unit_price ?? item.price ?? 0);
+                const lineTotal = Number(item.total_price ?? unitPrice * qty);
+                return `
               <tr>
                 <td class="text-center">${i + 1}</td>
                 <td>
-                  <div style="font-weight: 600;">${item.product_name}</div>
-                  <div style="font-size: 10px; color: #6b7280;">SKU: ${item.sku}</div>
+                  <div style="font-weight: 600;">${productName}</div>
+                  <div style="font-size: 10px; color: #6b7280;">SKU: ${sku}</div>
                 </td>
-                <td class="text-center">${item.quantity}</td>
-                <td class="text-right">${Number(item.unit_price).toFixed(2)}</td>
-                <td class="text-right">${Number(item.total_price).toFixed(2)}</td>
+                <td class="text-center">${qty}</td>
+                <td class="text-right">${unitPrice.toFixed(2)}</td>
+                <td class="text-right">${lineTotal.toFixed(2)}</td>
               </tr>
-            `
-              )
+            `;
+              })
               .join('')}
           </tbody>
         </table>
@@ -269,7 +341,7 @@ export const printInvoice = (order: any, items: any[], cmsData?: any) => {
           <div class="summary-table">
             <div class="summary-row">
               <span>Subtotal</span>
-              <span>₹${Number(order.subtotal || order.total_amount * 0.82).toFixed(2)}</span>
+              <span>₹${subtotal.toFixed(2)}</span>
             </div>
             <div class="summary-row">
               <span>CGST (9%)</span>
@@ -291,14 +363,12 @@ export const printInvoice = (order: any, items: any[], cmsData?: any) => {
             }
             <div class="summary-row total">
               <span>Total</span>
-              <span>₹${Number(order.total_amount).toFixed(2)}</span>
+              <span>₹${totalAmount.toFixed(2)}</span>
             </div>
           </div>
         </div>
 
-        <div class="amount-in-words">
-          Amount in words: ${totalInWords} Rupees Only
-        </div>
+        ${totalInWords ? `<div class="amount-in-words">${totalInWords}</div>` : ''}
 
         <div class="footer">
           <div class="terms">

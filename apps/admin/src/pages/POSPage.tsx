@@ -128,8 +128,29 @@ export function POSPage() {
         })),
       };
 
-      const createdOrder = await AdminService.createOrder(orderData);
-      setLastCreatedOrder(createdOrder);
+      const response = await AdminService.createOrder(orderData);
+      const serverOrder = response?.order || response?.data || response || {};
+      const orderRecord = {
+        ...orderData,
+        ...(typeof serverOrder === 'object' ? serverOrder : {}),
+        order_number: serverOrder?.order_number || orderNumber,
+        created_at: serverOrder?.created_at || new Date().toISOString(),
+        subtotal,
+        tax_amount: tax,
+        total_amount: total,
+        customer_name: customer.name,
+        customer_email: customer.email,
+        customer_phone: customer.phone,
+        order_items: cart.map((item) => ({
+          product_name: item.name,
+          sku: item.sku || '',
+          quantity: item.qty,
+          unit_price: Number(item.price),
+          total_price: Number(item.price) * item.qty,
+        })),
+      };
+
+      setLastCreatedOrder(orderRecord);
       setLastCartSnapshot([...cart]);
       setSuccess(true);
       setCart([]);
@@ -145,20 +166,33 @@ export function POSPage() {
 
   const handlePrintReceipt = async () => {
     if (!lastCreatedOrder) return;
-    const order = {
-      ...lastCreatedOrder,
-      total_amount: lastCreatedOrder.totalAmount || lastCreatedOrder.total_amount,
-    };
+    const rawOrder = lastCreatedOrder?.order || lastCreatedOrder?.data || lastCreatedOrder;
     const items =
-      order.order_items && order.order_items.length > 0
-        ? order.order_items
+      rawOrder.order_items && rawOrder.order_items.length > 0
+        ? rawOrder.order_items
         : lastCartSnapshot.map((item) => ({
             product_name: item.name,
             sku: item.sku || '',
             quantity: item.qty,
-            unit_price: item.price,
+            unit_price: Number(item.price),
             total_price: Number(item.price) * item.qty,
           }));
+
+    const order = {
+      ...rawOrder,
+      order_number:
+        rawOrder.order_number || rawOrder.orderNumber || `POS-${Date.now().toString().slice(-6)}`,
+      created_at: rawOrder.created_at || rawOrder.createdAt || new Date().toISOString(),
+      total_amount:
+        rawOrder.total_amount ??
+        rawOrder.totalAmount ??
+        items.reduce((s: number, i: any) => s + Number(i.total_price || 0), 0),
+      subtotal:
+        rawOrder.subtotal ?? items.reduce((s: number, i: any) => s + Number(i.total_price || 0), 0),
+      tax_amount: rawOrder.tax_amount ?? rawOrder.tax ?? 0,
+      customer_name: rawOrder.customer_name || customer.name,
+      customer_email: rawOrder.customer_email || customer.email,
+    };
 
     try {
       const cmsData = await CMSService.getContent('global');
