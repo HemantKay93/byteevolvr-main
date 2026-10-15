@@ -173,3 +173,35 @@ export const getPeriods = catchAsync(async (req: Request, res: Response) => {
   const data = await PeriodService.getPeriods();
   res.status(200).json({ status: 'success', data });
 });
+
+export const getAccounts = catchAsync(async (req: Request, res: Response) => {
+  const tenantId = (req as any).user?.tenant_id;
+  const data = await AccountingRepository.getAccounts(tenantId);
+  res.status(200).json({ status: 'success', data });
+});
+
+export const createAccount = catchAsync(async (req: Request, res: Response) => {
+  const data = await AccountingRepository.createAccount(req.body);
+  res.status(201).json({ status: 'success', data });
+});
+
+export const getAR = catchAsync(async (req: Request, res: Response) => {
+  const data = await AccountingRepository.getARInvoices();
+  res.status(200).json({ status: 'success', data });
+});
+
+export const recordARPayment = catchAsync(async (req: Request, res: Response) => {
+  const userId = (req as any).user?.id || 'admin';
+  const data = await AccountingRepository.recordInvoicePayment(req.body, userId);
+  res.status(200).json({ status: 'success', data });
+});
+
+export const getAP = catchAsync(async (req: Request, res: Response) => {
+  const report = await APService.getAgingReport();
+  res.status(200).json({ status: 'success', data: report });
+});
+
+export const getGSTOverview = catchAsync(async (req: Request, res: Response) => {
+  const data = await AccountingService.getGSTReport();
+  res.status(200).json({ status: 'success', data });
+});

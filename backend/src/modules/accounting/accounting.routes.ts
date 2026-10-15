@@ -39,7 +39,15 @@ router.get('/banking/reconcile/:bankAccountId', accountingController.getUnreconc
 router.post('/banking/reconcile/:transactionId', accountingController.reconcileTransaction);
 
 router.get('/gst/rates', accountingController.getTaxRates);
+router.get('/gst', accountingController.getGSTOverview);
 router.post('/gst/returns/gstr3b', accountingController.prepareGSTR3B);
 router.post('/gst/returns/:returnId/file', accountingController.fileReturn);
+
+router.get('/accounts', accountingController.getAccounts);
+router.post('/accounts', accountingController.createAccount);
+
+router.get('/ar', accountingController.getAR);
+router.post('/ar/record-payment', accountingController.recordARPayment);
+router.get('/ap', accountingController.getAP);
 
 export const accountingRoutes = router;

@@ -3,10 +3,10 @@ import { apiClient } from '../apiClient';
 export const AccountingService = {
   // Chart of Accounts
   getAccounts: async () => {
-    const response = await apiClient.get('/accounting/ledger');
+    const response = await apiClient.get('/accounting/accounts');
     return response.data;
   },
-  
+
   createAccount: async (accountData: any) => {
     const response = await apiClient.post('/accounting/accounts', accountData);
     return response.data;
@@ -14,7 +14,9 @@ export const AccountingService = {
 
   // Journal Entries
   getJournalEntries: async (accountType?: string) => {
-    const url = accountType ? `/accounting/journal?account_type=${accountType}` : '/accounting/journal';
+    const url = accountType
+      ? `/accounting/journal?account_type=${accountType}`
+      : '/accounting/journal';
     const response = await apiClient.get(url);
     return response.data;
   },
@@ -27,6 +29,11 @@ export const AccountingService = {
   // AR / AP
   getAR: async () => {
     const response = await apiClient.get('/accounting/ar');
+    return response.data;
+  },
+
+  recordARPayment: async (paymentData: any) => {
+    const response = await apiClient.post('/accounting/ar/record-payment', paymentData);
     return response.data;
   },
 
@@ -46,13 +53,15 @@ export const AccountingService = {
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
-    
+
     const response = await apiClient.get(`/accounting/profit-loss?${params.toString()}`);
     return response.data;
   },
 
   getBalanceSheet: async (asOfDate?: string) => {
-    const url = asOfDate ? `/accounting/balance-sheet?asOfDate=${asOfDate}` : '/accounting/balance-sheet';
+    const url = asOfDate
+      ? `/accounting/balance-sheet?asOfDate=${asOfDate}`
+      : '/accounting/balance-sheet';
     const response = await apiClient.get(url);
     return response.data;
   },
@@ -63,13 +72,20 @@ export const AccountingService = {
     return response.data;
   },
 
+  createBankAccount: async (bankAccountData: any) => {
+    const response = await apiClient.post('/accounting/banking/accounts', bankAccountData);
+    return response.data;
+  },
+
   getUnreconciledTransactions: async (bankAccountId: string) => {
     const response = await apiClient.get(`/accounting/banking/reconcile/${bankAccountId}`);
     return response.data;
   },
 
   reconcileTransaction: async (transactionId: string, journalHeaderId: string) => {
-    const response = await apiClient.post(`/accounting/banking/reconcile/${transactionId}`, { journalHeaderId });
+    const response = await apiClient.post(`/accounting/banking/reconcile/${transactionId}`, {
+      journalHeaderId,
+    });
     return response.data;
   },
 
@@ -87,5 +103,5 @@ export const AccountingService = {
   getFinancialHealthTracker: async () => {
     const response = await apiClient.get('/accounting/health-tracker');
     return response.data;
-  }
+  },
 };
